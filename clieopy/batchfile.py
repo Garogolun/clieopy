@@ -23,31 +23,69 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from fixedformat import FixedFormat
+
 class BatchFile:
 
-  """Represents a CLIEOP03 file.
+    """Represents a CLIEOP03 file.
 
-  The name is chosen instead of just File to avoid confusion with regular files.
-  """
+    The name is chosen instead of just File to avoid confusion with regular files.
 
-  pass
+    """
+
+    # This generic class has no restriction on the transaction types
+    transaction_type = None
+
+    def __init__(self, date, indexnumber=1, duplicate=False):
+        """Construct a BatchFile.
+
+        date        -- a datetime or date object (supporting strftime)
+        indexnumber -- used when creating more than one CLIEOP03 file per day
+        duplicate   -- whether this file is a duplicate
+
+        """
+        self.date = date
+        self.indexnumber = indexnumber
+        self.duplicate = duplicate
+
+    def write_to_file(self, f):
+        """Write a BatchFile to a file object.
+        
+        f -- the file to write to (needs to support write)
+        
+        """
+
+        # Write header
+        fileheader = FixedFormat("0001A%6sCLIEOP03XXXXX%02d%02d%1d", 50)
+        f.write(fileheader.pack(
+                self.date.strftime("%d%m%y"), self.date.day, self.indexnumber,
+                1 if self.duplicate else 0))
+
+        # TODO: Loop over batch-stuff
+
+        # Write footer
+        f.write(FixedFormat("9999A", 50).pack())
 
 class PaymentBatchFile(BatchFile):
 
-  """Represents a CLIEOP03 file with payments.
+    """Represents a CLIEOP03 file with payments.
 
-  A CLIEOP03 file may only contain batches of the same transaction type
-  (payment or collect).
-  """
+    A CLIEOP03 file may only contain batches of the same transaction type
+    (payment or collect).
 
-  pass
+    """
+
+    # Only allow payment batches
+    transaction_type = 0
 
 class CollectBatchFile(BatchFile):
 
-  """Represents a CLIEOP03 file with collections.
+    """Represents a CLIEOP03 file with collections.
 
-  A CLIEOP03 file may only contain batches of the same transaction type
-  (payment or collect).
-  """
+    A CLIEOP03 file may only contain batches of the same transaction type
+    (payment or collect).
 
-  pass
+    """
+
+    # Only allow collect transactions
+    transaction_type = 10

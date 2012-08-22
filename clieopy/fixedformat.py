@@ -22,3 +22,27 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+class FixedFormat:
+
+    """Pack or unpack objects in a string in fixed format."""
+
+    def __init__(self, formatstr, length):
+        """Construct a FixedFormat.
+
+        formatstr -- the format string
+        length    -- the fixed length of the line
+
+        Format strings look very similar (i.e. exactly) like regular Python
+        format strings.
+
+        """
+        self.formatstr = formatstr
+        self.length = length
+
+    def pack(self, *args):
+        """Pack a set of objects in a string."""
+        ret = self.formatstr % args
+        if self.length is not None:
+            ret = ret + (self.length - len(ret))*" "
+        return ret
