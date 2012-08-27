@@ -25,6 +25,7 @@
 
 from fixedformat import FixedFormat
 from transactiontypes import TransactionGroups
+from batch import Batch
 
 class BatchFile:
 
@@ -50,6 +51,16 @@ class BatchFile:
         self.date = date
         self.indexnumber = indexnumber
         self.duplicate = duplicate
+        self.batches = []
+
+    def create_batch(self, accountnumber, currency="EUR"):
+        """Create and add a batch to this file.
+
+        accountnumber    -- account on our side (payed from or collected to)
+        currency         -- currency to use
+
+        """
+        self.batches.append(Batch(self.transactiongroup, accountnumber, currency))
 
     def write_to_file(self, f):
         """Write a BatchFile to a file object.
@@ -64,7 +75,9 @@ class BatchFile:
             self.date.strftime("%d%m%y"), self.date.day, self.indexnumber,
             1 if self.duplicate else 0) + '\n')
 
-        # TODO: Loop over batch-stuff
+        # Write all batches
+        for i, batch in enumerate(self.batches):
+            batch.write_to_file(f, i+1)  # i+1 -- people start counting at 1
 
         # Write footer
         f.write(FixedFormat("9999A", 50).pack() + '\n')
