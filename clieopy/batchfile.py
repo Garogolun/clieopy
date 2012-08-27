@@ -24,17 +24,19 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from fixedformat import FixedFormat
+from transactiontypes import TransactionGroups
 
 class BatchFile:
 
     """Represents a CLIEOP03 file.
 
-    The name is chosen instead of just File to avoid confusion with regular files.
+    The name is chosen instead of just File to avoid confusion with regular
+    files.
 
     """
 
     # This generic class has no restriction on the transaction types
-    transaction_type = None
+    transaction_type = TransactionGroups.UNKNOWN
 
     def __init__(self, date, indexnumber=1, duplicate=False):
         """Construct a BatchFile.
@@ -58,13 +60,13 @@ class BatchFile:
         # Write header
         fileheader = FixedFormat("0001A%6sCLIEOP03XXXXX%02d%02d%1d", 50)
         f.write(fileheader.pack(
-                self.date.strftime("%d%m%y"), self.date.day, self.indexnumber,
-                1 if self.duplicate else 0))
+            self.date.strftime("%d%m%y"), self.date.day, self.indexnumber,
+            1 if self.duplicate else 0) + '\n')
 
         # TODO: Loop over batch-stuff
 
         # Write footer
-        f.write(FixedFormat("9999A", 50).pack())
+        f.write(FixedFormat("9999A", 50).pack() + '\n')
 
 class PaymentBatchFile(BatchFile):
 
@@ -76,7 +78,7 @@ class PaymentBatchFile(BatchFile):
     """
 
     # Only allow payment batches
-    transaction_type = 0
+    transaction_type = TransactionGroups.PAYMENTS
 
 class CollectBatchFile(BatchFile):
 
@@ -88,4 +90,4 @@ class CollectBatchFile(BatchFile):
     """
 
     # Only allow collect transactions
-    transaction_type = 10
+    transaction_type = TransactionGroups.COLLECTIONS
