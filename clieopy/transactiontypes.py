@@ -63,25 +63,26 @@ class TransactionGroups:
 
     """Contains the possible transaction groups. """
 
-    PAYMENTS, COLLECTIONS, UNKNOWN = range(3)
+    PAYMENTS    = "00"
+    COLLECTIONS = "10"
+    UNKNOWN     = None
 
-    def is_valid_type(transaction_group, transaction_type):
+    def is_valid_type(transactiongroup, transactiontype):
         """Check if the type is valid for the given group.
         
         Note: it is assumed that the transaction type itself is valid."""
 
-        if transaction_group not in range(3):
-            raise ValueError
-
-        if transaction_group == PAYMENTS:
-            return transaction_type in [
+        if transactiongroup == PAYMENTS:
+            return transactiontype in [
                 CREDITOR_PAYMENT_IMPURE,
                 SALARY_PAYMENT_IMPURE,
                 CREDITOR_PAYMENT_PURE,
                 SALARY_PAYMENT_PURE]
-        elif transaction_group == COLLECTIONS:
+        elif transactiongroup == COLLECTIONS:
             return transaction_type in [
                 COLLECTION_PURE,
                 COLLECTION_IMPURE]
-        else:  # transaction_group == UNKNOWN
+        elif transactiongroup == UNKNOWN:
             return False  # you should not use UNKNOWN in applications
+        else:
+            raise ValueError("Transaction group not valid.")

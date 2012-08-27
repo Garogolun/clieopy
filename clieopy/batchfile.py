@@ -35,8 +35,9 @@ class BatchFile:
 
     """
 
-    # This generic class has no restriction on the transaction types
-    transaction_type = TransactionGroups.UNKNOWN
+    # This generic class has no restriction on the transaction group (but
+    # shouldn't be used in real life!)
+    transactiongroup = TransactionGroups.UNKNOWN
 
     def __init__(self, date, indexnumber=1, duplicate=False):
         """Construct a BatchFile.
@@ -78,7 +79,7 @@ class PaymentBatchFile(BatchFile):
     """
 
     # Only allow payment batches
-    transaction_type = TransactionGroups.PAYMENTS
+    transactiongroup = TransactionGroups.PAYMENTS
 
 class CollectBatchFile(BatchFile):
 
@@ -90,4 +91,4 @@ class CollectBatchFile(BatchFile):
     """
 
     # Only allow collect transactions
-    transaction_type = TransactionGroups.COLLECTIONS
+    transactiongroup = TransactionGroups.COLLECTIONS
