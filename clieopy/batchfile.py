@@ -61,8 +61,12 @@ class BatchFile:
         accountnumber    -- account on our side (payed from or collected to)
         currency         -- currency to use
 
+        Returns the created batch.
+
         """
-        self.batches.append(Batch(self.transactiongroup, accountnumber, currency))
+        batch = Batch(self.transactiongroup, accountnumber, currency)
+        self.batches.append(batch)
+        return batch
 
     def write_to_file(self, f):
         """Write a BatchFile to a file object.
