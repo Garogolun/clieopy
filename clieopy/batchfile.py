@@ -40,18 +40,20 @@ class BatchFile:
     # shouldn't be used in real life!)
     transactiongroup = TransactionGroups.UNKNOWN
 
-    def __init__(self, date, indexnumber=1, duplicate=False):
+    def __init__(self, date, indexnumber=1, duplicate=False, senderident=""):
         """Construct a BatchFile.
 
         date        -- a datetime or date object (supporting strftime)
         indexnumber -- used when creating more than one CLIEOP03 file per day
         duplicate   -- whether this file is a duplicate
+        senderident -- a sender identification
 
         """
-        self.date = date
+        self.date        = date
         self.indexnumber = indexnumber
-        self.duplicate = duplicate
-        self.batches = []
+        self.duplicate   = duplicate
+        self.senderident = senderident
+        self.batches     = []
 
     def create_batch(self, accountnumber, currency="EUR"):
         """Create and add a batch to this file.
@@ -70,16 +72,25 @@ class BatchFile:
         """
 
         # Write header
-        fileheader = FixedFormat("0001A%6sCLIEOP03XXXXX%02d%02d%1d", 50)
+        # 0001     -- record type (file header)
+        # A        -- variant
+        # %6s      -- creation date (ddmmyy)
+        # CLIEOP03 -- constant
+        # %6s      -- sender identification
+        # %02d%02d -- file identification (day and indexnumber)
+        # %1d      -- duplicate (0 = no, 1 = yes, rarely used?)
+        fileheader = FixedFormat("0001A%6sCLIEOP03%6s%02d%02d%1d", 50)
         f.write(fileheader.pack(
-            self.date.strftime("%d%m%y"), self.date.day, self.indexnumber,
-            1 if self.duplicate else 0) + '\n')
+            self.date.strftime("%d%m%y"), self.senderident, self.date.day,
+            self.indexnumber, 1 if self.duplicate else 0) + '\n')
 
         # Write all batches
         for i, batch in enumerate(self.batches):
             batch.write_to_file(f, i+1)  # i+1 -- people start counting at 1
 
         # Write footer
+        # 9999 -- record type (file footer)
+        # A    -- variant
         f.write(FixedFormat("9999A", 50).pack() + '\n')
 
 class PaymentBatchFile(BatchFile):
