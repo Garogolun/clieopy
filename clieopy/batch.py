@@ -23,14 +23,16 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from fixedformat import FixedFormat
-from description import Description
+from record import RecordTypes, write_record
+from omschrijving import Omschrijving
+import datetime
 
 class Batch:
 
     """Represents a single CLIEOP03 batch."""
 
-    def __init__(self, transactiongroup, accountnumber, currency="EUR"):
+    def __init__(self, transactiongroup, accountnumber,
+            processingdate=datetime.date.today(), currency="EUR", clientname=""):
         """Construct a Batch.
 
         transactiongroup -- transaction group (payments or collections)
@@ -38,9 +40,17 @@ class Batch:
         currency         -- currency to use
 
         """
-        self.transactiongroup = transactiongroup
-        self.accountnumber = accountnumber
-        self.currency = currency
+        self.recordargs = {
+            'transactiegroep': transactiongroup,
+            'rekeningnummeropdrachtgever': accountnumber,
+            'batchvolgnummer': 0,
+            'aanleveringsmuntsoort': currency,
+            'batchidentificatie': "",
+            'nawcode': False,
+            'gewensteverwerkingsdatum': processingdate,
+            'naamopdrachtgever': clientname,
+            'testcode': False,
+        }
         self.description = None
 
     def add_default_description(self, lines):
@@ -49,7 +59,7 @@ class Batch:
         lines -- the description lines, array of max 4 strings of max 32 chars
 
         """
-        desc = Description(lines, True)
+        desc = Omschrijving(lines, True)
         self.description = desc
 
     def write_to_file(self, f, index):
@@ -59,42 +69,24 @@ class Batch:
         index -- index number of this batch
         
         """
-        self._write_header(f, index)
+
+        recordargs = self.recordargs
+        recordargs.update({
+            'batchvolgnummer': index,
+            'totaalbedrag': 0,
+            'totaalrekeningen': 0,
+            'aantalposten': 0,
+        })
+
+        write_record(f, RecordTypes.BATCHVOORLOOP, **recordargs)
+
         try:
             self.description.write_to_file(f)
         except AttributeError:
             pass
-        self._write_client_record(f)
+
+        write_record(f, RecordTypes.OPDRACHTGEVER, **recordargs)
+
         # TODO: Loop over transactions
-        self._write_footer(f)
 
-    def _write_header(self, f, index):
-        # Write header
-        # 0010 -- record type (batch header)
-        # B    -- variant
-        # %2s  -- transaction group (00 or 10)
-        # %10s -- bank account number
-        # %04d -- batch index number
-        # %3s  -- currency
-        # %16s -- batch identification
-        f.write(FixedFormat("0010B%2s%10s%04d%3s%16s", 50).pack(
-            self.transactiongroup, self.accountnumber, index, self.currency,
-            "hoepladoepla") + '\n')
-
-    def _write_client_record(self, f):
-        # 0030 -- record type
-        # B    -- variant code
-        # %1d  -- whether you want to receive the names of impure transactions
-        # %6s  -- desired processing date
-        # %35s -- client name, is overwritten anyway by name of account holder
-        # %1s  -- test code (P = production, T = test)
-        f.write(FixedFormat("0030B%1d%6s%35s%1s", 50).pack(1, "010113", "", "P") + '\n')
-
-    def _write_footer(self, f):
-        # Write footer
-        # 9990  -- record type (batch footer)
-        # A     -- variant
-        # %018d -- total sum (in cents)
-        # %010d -- checksum of account numbers
-        # %07d  -- amount of records in batch
-        f.write(FixedFormat("9990A%018d%010d%07d", 50).pack(0, 0, 0) + '\n')
+        write_record(f, RecordTypes.BATCHSLUIT, **recordargs)

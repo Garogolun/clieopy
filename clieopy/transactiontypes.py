@@ -31,22 +31,22 @@ class TransactionTypes:
     SALARY_PAYMENT_IMPURE   = "0003"
     CREDITOR_PAYMENT_PURE   = "0005"
     SALARY_PAYMENT_PURE     = "0008"
-    COLLECTION_PURE         = "1001"
-    COLLECTION_IMPURE       = "1002"
+    DIRECTDEBIT_PURE        = "1001"
+    DIRECTDEBIT_IMPURE      = "1002"
 
-    def get_type(is_collection, is_pure, is_salary=False):
+    def get_type(is_directdebit, is_pure, is_salary=False):
         """Return the correct transaction type for the given parameters.
 
-        is_collection -- whether the transaction is a payment or collection
-        is_pure       -- whether the transaction is pure
-        is_salary     -- salary or creditor payment? (ignored for collections)
+        is_directdebit -- whether the transaction is a payment or direct debit
+        is_pure        -- whether the transaction is pure
+        is_salary      -- salary or creditor payment? (ignored for debits)
 
         """
-        if is_collection:
+        if is_directdebit:
             if is_pure:
-                return COLLECTION_PURE
+                return DIRECTDEBIT_PURE
             else:
-                return COLLECTION_IMPURE
+                return DIRECTDEBIT_IMPURE
         else:
             if is_pure:
                 if is_salary:
@@ -63,9 +63,9 @@ class TransactionGroups:
 
     """Contains the possible transaction groups. """
 
-    PAYMENTS    = "00"
-    COLLECTIONS = "10"
-    UNKNOWN     = None
+    PAYMENTS     = "00"
+    DIRECTDEBITS = "10"
+    UNKNOWN      = None
 
     def is_valid_type(transactiongroup, transactiontype):
         """Check if the type is valid for the given group.
@@ -78,10 +78,10 @@ class TransactionGroups:
                 SALARY_PAYMENT_IMPURE,
                 CREDITOR_PAYMENT_PURE,
                 SALARY_PAYMENT_PURE]
-        elif transactiongroup == COLLECTIONS:
+        elif transactiongroup == DIRECTDEBITS:
             return transaction_type in [
-                COLLECTION_PURE,
-                COLLECTION_IMPURE]
+                DIRECTDEBIT_PURE,
+                DIRECTDEBIT_IMPURE]
         elif transactiongroup == UNKNOWN:
             return False  # you should not use UNKNOWN in applications
         else:

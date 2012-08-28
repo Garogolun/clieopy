@@ -23,24 +23,19 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from fixedformat import FixedFormat
+from record import RecordTypes, write_record
 from transactiontypes import TransactionGroups
 from batch import Batch
 
-class BatchFile:
+class Bestand:
 
-    """Represents a CLIEOP03 file.
-
-    The name is chosen instead of just File to avoid confusion with regular
-    files.
-
-    """
+    """Represents a CLIEOP03 file."""
 
     # This generic class has no restriction on the transaction group (but
     # shouldn't be used in real life!)
     transactiongroup = TransactionGroups.UNKNOWN
 
-    def __init__(self, date, indexnumber=1, duplicate=False, senderident=""):
+    def __init__(self, date, index=1, duplicate=False, senderident=""):
         """Construct a BatchFile.
 
         date        -- a datetime or date object (supporting strftime)
@@ -49,11 +44,14 @@ class BatchFile:
         senderident -- a sender identification
 
         """
-        self.date        = date
-        self.indexnumber = indexnumber
-        self.duplicate   = duplicate
-        self.senderident = senderident
-        self.batches     = []
+        self.recordargs = {
+            'aanmaakdatum'         : date                          ,
+            'bestandsnaam'         : "CLIEOP03"                    ,
+            'inzenderidentificatie': senderident                   ,
+            'bestandsidentificatie': "%02d%02d" % (date.day, index),
+            'duplicaatcode'        : duplicate                     ,
+        }
+        self.batches = []
 
     def create_batch(self, accountnumber, currency="EUR"):
         """Create and add a batch to this file.
@@ -74,49 +72,31 @@ class BatchFile:
         f -- the file to write to (needs to support write)
         
         """
-
-        # Write header
-        # 0001     -- record type (file header)
-        # A        -- variant
-        # %6s      -- creation date (ddmmyy)
-        # CLIEOP03 -- constant
-        # %6s      -- sender identification
-        # %02d%02d -- file identification (day and indexnumber)
-        # %1d      -- duplicate (0 = no, 1 = yes, rarely used?)
-        fileheader = FixedFormat("0001A%6sCLIEOP03%6s%02d%02d%1d", 50)
-        f.write(fileheader.pack(
-            self.date.strftime("%d%m%y"), self.senderident, self.date.day,
-            self.indexnumber, 1 if self.duplicate else 0) + '\n')
-
-        # Write all batches
+        write_record(f, RecordTypes.BESTANDSVOORLOOP, **self.recordargs)
         for i, batch in enumerate(self.batches):
             batch.write_to_file(f, i+1)  # i+1 -- people start counting at 1
+        write_record(f, RecordTypes.BESTANDSSLUIT)
 
-        # Write footer
-        # 9999 -- record type (file footer)
-        # A    -- variant
-        f.write(FixedFormat("9999A", 50).pack() + '\n')
-
-class PaymentBatchFile(BatchFile):
+class BetalingBestand(Bestand):
 
     """Represents a CLIEOP03 file with payments.
 
-    A CLIEOP03 file may only contain batches of the same transaction type
-    (payment or collect).
+    A CLIEOP03 file may only contain batches of the same transaction group
+    (payment or direct debtits).
 
     """
 
     # Only allow payment batches
     transactiongroup = TransactionGroups.PAYMENTS
 
-class CollectBatchFile(BatchFile):
+class IncassoBestand(Bestand):
 
-    """Represents a CLIEOP03 file with collections.
+    """Represents a CLIEOP03 file with direct debits.
 
-    A CLIEOP03 file may only contain batches of the same transaction type
-    (payment or collect).
+    A CLIEOP03 file may only contain batches of the same transaction group
+    (payment or direct debits).
 
     """
 
     # Only allow collect transactions
-    transactiongroup = TransactionGroups.COLLECTIONS
+    transactiongroup = TransactionGroups.DIRECTDEBITS

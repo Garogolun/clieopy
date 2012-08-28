@@ -23,26 +23,35 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-class FixedFormat:
+from record import RecordTypes, to_string
 
-    """Pack or unpack objects in a string in fixed format."""
+class Omschrijving:
 
-    def __init__(self, formatstr, length):
-        """Construct a FixedFormat.
+    """Represents a one to four description records."""
 
-        formatstr -- the format string
-        length    -- the fixed length of the line
+    def __init__(self, lines, default=False):
+        """Construct a Description.
 
-        Format strings look very similar (i.e. exactly) like regular Python
-        format strings.
+        lines   -- the description lines, list of max 4 strings max 32 chars
+        default -- whether this is a default description for a batch
 
         """
-        self.formatstr = formatstr
-        self.length = length
 
-    def pack(self, *args):
-        """Pack a set of objects in a string."""
-        ret = self.formatstr % args
-        if self.length is not None:
-            ret = ret + (self.length - len(ret))*" "
-        return ret
+        if len(lines) > 4:
+            raise ValueError("Descriptions can't contain more than 4 strings.")
+
+        for line in lines:
+            if len(line) > 32:
+                raise ValueError("Description lines are max 32 characters.")
+
+        self.lines   = lines
+        self.default = default
+
+    def write_to_file(self, f):
+        if self.default:
+            rectype = RecordTypes.VASTEOMSCHRIJVING
+        else:
+            rectype = RecordTypes.OMSCHRIJVING
+
+        for line in self.lines:
+            f.write(to_string(rectype, omschrijving=line) + '\n')
