@@ -24,6 +24,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from fixedformat import FixedFormat
+from description import Description
 
 class Batch:
 
@@ -40,15 +41,34 @@ class Batch:
         self.transactiongroup = transactiongroup
         self.accountnumber = accountnumber
         self.currency = currency
+        self.description = None
+
+    def add_default_description(self, lines):
+        """Add a default description to every transaction in this batch.
+
+        lines -- the description lines, array of max 4 strings of max 32 chars
+
+        """
+        desc = Description(lines, True)
+        self.description = desc
 
     def write_to_file(self, f, index):
-        """Write a BatchFile to a file object.
+        """Write a Batch to a file object.
         
         f     -- the file to write to (needs to support write)
         index -- index number of this batch
         
         """
+        self._write_header(f, index)
+        try:
+            self.description.write_to_file(f)
+        except AttributeError:
+            pass
+        self._write_client_record(f)
+        # TODO: Loop over transactions
+        self._write_footer(f)
 
+    def _write_header(self, f, index):
         # Write header
         # 0010 -- record type (batch header)
         # B    -- variant
@@ -61,13 +81,20 @@ class Batch:
             self.transactiongroup, self.accountnumber, index, self.currency,
             "hoepladoepla") + '\n')
 
-        # TODO: Loop over transacties-stuff
+    def _write_client_record(self, f):
+        # 0030 -- record type
+        # B    -- variant code
+        # %1d  -- whether you want to receive the names of impure transactions
+        # %6s  -- desired processing date
+        # %35s -- client name, is overwritten anyway by name of account holder
+        # %1s  -- test code (P = production, T = test)
+        f.write(FixedFormat("0030B%1d%6s%35s%1s", 50).pack(1, "010113", "", "P") + '\n')
 
+    def _write_footer(self, f):
         # Write footer
         # 9990  -- record type (batch footer)
         # A     -- variant
         # %018d -- total sum (in cents)
         # %010d -- checksum of account numbers
         # %07d  -- amount of records in batch
-        f.write(FixedFormat("9990A%018d%010d%07d", 50).pack(
-            0, 0, 0) + '\n')
+        f.write(FixedFormat("9990A%018d%010d%07d", 50).pack(0, 0, 0) + '\n')
